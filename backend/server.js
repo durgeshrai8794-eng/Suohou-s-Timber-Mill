@@ -271,6 +271,35 @@ app.delete('/api/contact/:id', authMiddleware, async (req, res) => {
   }
 });
 
+/* ===============================
+   ADMIN ANALYTICS (PHASE 7)
+================================ */
+app.get('/api/admin/analytics', authMiddleware, async (req, res) => {
+  try {
+    const totalProducts = await Wood.countDocuments();
+
+    const totalStockAgg = await Wood.aggregate([
+      { $group: { _id: null, total: { $sum: '$stock' } } }
+    ]);
+
+    const lowStockCount = await Wood.countDocuments({
+      stock: { $lte: 10 }
+    });
+
+    const totalEnquiries = await ContactMessage.countDocuments();
+
+    res.json({
+      totalProducts,
+      totalStock: totalStockAgg[0]?.total || 0,
+      lowStockCount,
+      totalEnquiries
+    });
+  } catch (err) {
+    console.error('Analytics error:', err);
+    res.status(500).json({ message: 'Analytics error' });
+  }
+});
+
 
 /* ===============================
    START SERVER

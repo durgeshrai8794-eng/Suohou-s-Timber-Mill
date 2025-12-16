@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 function StocksPage() {
   const [woods, setWoods] = useState([]);
-  const [search, setSearch] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  const [search, setSearch] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   useEffect(() => {
     fetchWoods();
@@ -12,105 +12,122 @@ function StocksPage() {
 
   const fetchWoods = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/woods');
+      const res = await axios.get("http://localhost:5000/api/woods");
       setWoods(res.data);
     } catch (err) {
-      console.error('Error fetching woods:', err);
+      console.error("Error fetching woods:", err);
     }
   };
 
-  // ---------------- FILTER LOGIC ----------------
+  /* ================= FILTER LOGIC ================= */
   const filteredWoods = woods.filter((wood) => {
     const matchesName = wood.name
       .toLowerCase()
       .includes(search.toLowerCase());
 
     const matchesPrice =
-      maxPrice === '' || wood.price <= Number(maxPrice);
+      maxPrice === "" || wood.price <= Number(maxPrice);
 
     return matchesName && matchesPrice;
   });
 
-  // ---------------- AVAILABILITY ----------------
+  /* ================= AVAILABILITY ================= */
   const getAvailability = (stock) => {
-    if (stock === 0) return 'Out of Stock';
-    if (stock <= 10) return 'Limited Stock';
-    return 'In Stock';
+    if (stock === 0) return "Out of Stock";
+    if (stock <= 10) return "Limited Stock";
+    return "In Stock";
   };
 
-  // ---------------- WHATSAPP ----------------
+  /* ================= WHATSAPP ================= */
   const openWhatsApp = (wood) => {
-    const phoneNumber = '919999999999'; 
-    // 🔴 Replace with your real WhatsApp number (country code required)
+    const phoneNumber = "919856309485"; // ✅ use only digits
 
     const message = `Hello, I'm interested in ${wood.name}.
 Price: ₹${wood.price}.
 Please share more details.`;
 
-    const url = `https://wa.me/${919856309485}?text=${encodeURIComponent(
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
       message
     )}`;
 
-    window.open(url, '_blank');
+    window.open(url, "_blank");
   };
 
   return (
     <section className="inventory">
-      <h2>Available Timber Stock</h2>
+      {/* PAGE HEADER */}
+      <div className="inventory-header">
+        <h2>Available Timber Stock</h2>
+        <p>
+          Browse our premium quality wood collection. Use filters to find the
+          perfect timber for your project.
+        </p>
+      </div>
 
-      {/* Search & Filter */}
-      <div className="filter-bar">
+      {/* FILTER BAR */}
+      <div className="filter-bar enhanced">
         <input
           type="text"
-          placeholder="Search wood name..."
+          placeholder="🔍 Search wood name"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <input
           type="number"
-          placeholder="Max price (₹)"
+          placeholder="💰 Max price (₹)"
           value={maxPrice}
           onChange={(e) => setMaxPrice(e.target.value)}
         />
       </div>
 
+      {/* EMPTY STATE */}
       {filteredWoods.length === 0 ? (
-        <p>No matching stock found.</p>
+        <div className="empty-state">
+          <p>No matching stock found.</p>
+        </div>
       ) : (
         <div className="woods-grid">
           {filteredWoods.map((wood) => (
             <div key={wood._id} className="wood-card">
-              {wood.image && (
+              {/* IMAGE */}
+              {wood.image ? (
                 <img
                   src={`http://localhost:5000/uploads/${wood.image}`}
                   alt={wood.name}
                 />
+              ) : (
+                <div className="image-placeholder">No Image</div>
               )}
 
-              <h3>{wood.name}</h3>
-              <p>{wood.description}</p>
-              <p><strong>Price:</strong> ₹{wood.price}</p>
-              <p><strong>Stock:</strong> {wood.stock}</p>
+              {/* CONTENT */}
+              <div className="wood-content">
+                <h3>{wood.name}</h3>
+                <p className="wood-desc">{wood.description}</p>
 
-              {/* Availability Badge */}
-              <span
-                className={`badge ${
-                  getAvailability(wood.stock)
-                    .replace(' ', '-')
-                    .toLowerCase()
-                }`}
-              >
-                {getAvailability(wood.stock)}
-              </span>
+                <div className="wood-meta">
+                  <span>₹ {wood.price}</span>
+                  <span>Stock: {wood.stock}</span>
+                </div>
 
-              {/* WhatsApp Button */}
-              <button
-                className="btn whatsapp"
-                onClick={() => openWhatsApp(wood)}
-                style={{ marginTop: '8px' }}
-              >
-                Request Quote
-              </button>
+                {/* AVAILABILITY */}
+                <span
+                  className={`badge ${
+                    getAvailability(wood.stock)
+                      .replace(" ", "-")
+                      .toLowerCase()
+                  }`}
+                >
+                  {getAvailability(wood.stock)}
+                </span>
+
+                {/* CTA */}
+                <button
+                  className="btn whatsapp full"
+                  onClick={() => openWhatsApp(wood)}
+                >
+                  Request Quote on WhatsApp
+                </button>
+              </div>
             </div>
           ))}
         </div>

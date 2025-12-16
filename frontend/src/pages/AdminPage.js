@@ -8,6 +8,16 @@ function AdminPage() {
   const [woods, setWoods] = useState([]);
   const [contacts, setContacts] = useState([]);
 
+  /* ===============================
+     ANALYTICS STATE
+  ================================ */
+  const [analytics, setAnalytics] = useState({
+    totalProducts: 0,
+    totalStock: 0,
+    lowStock: 0,
+    enquiries: 0,
+  });
+
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -35,6 +45,27 @@ function AdminPage() {
       fetchContacts();
     }
   }, []);
+
+  /* ===============================
+     UPDATE ANALYTICS
+  ================================ */
+  useEffect(() => {
+    const totalStock = woods.reduce(
+      (sum, w) => sum + Number(w.stock || 0),
+      0
+    );
+
+    const lowStock = woods.filter(
+      (w) => Number(w.stock) <= 10
+    ).length;
+
+    setAnalytics({
+      totalProducts: woods.length,
+      totalStock,
+      lowStock,
+      enquiries: contacts.length,
+    });
+  }, [woods, contacts]);
 
   /* ===============================
      AUTH HEADER
@@ -70,22 +101,20 @@ function AdminPage() {
   };
 
   /* ===============================
-     LOGIN (JWT)
+     LOGIN
   ================================ */
   const handleLogin = async (e) => {
     e.preventDefault();
-
     try {
       const res = await axios.post(
         'http://localhost:5000/api/admin/login',
         loginForm
       );
-
       localStorage.setItem('admin_token', res.data.token);
       setIsLoggedIn(true);
       fetchWoods();
       fetchContacts();
-    } catch (err) {
+    } catch {
       alert('Invalid credentials');
     }
   };
@@ -96,17 +125,15 @@ function AdminPage() {
   };
 
   /* ===============================
-     UPLOAD
+     UPLOAD STOCK
   ================================ */
   const handleUpload = async (e) => {
     e.preventDefault();
 
     const formData = new FormData();
-    formData.append('name', form.name);
-    formData.append('description', form.description);
-    formData.append('stock', form.stock);
-    formData.append('price', form.price);
-    if (form.image) formData.append('image', form.image);
+    Object.entries(form).forEach(([key, value]) =>
+      value && formData.append(key, value)
+    );
 
     try {
       await axios.post(
@@ -122,7 +149,7 @@ function AdminPage() {
         image: null,
       });
       fetchWoods();
-    } catch (err) {
+    } catch {
       alert('Error uploading item');
     }
   };
@@ -132,14 +159,13 @@ function AdminPage() {
   ================================ */
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this item?')) return;
-
     try {
       await axios.delete(
         `http://localhost:5000/api/woods/${id}`,
         authHeader()
       );
       fetchWoods();
-    } catch (err) {
+    } catch {
       alert('Error deleting item');
     }
   };
@@ -157,8 +183,6 @@ function AdminPage() {
     });
   };
 
-  const cancelEdit = () => setEditId(null);
-
   const saveEdit = async (id) => {
     try {
       await axios.put(
@@ -172,24 +196,23 @@ function AdminPage() {
       );
       setEditId(null);
       fetchWoods();
-    } catch (err) {
+    } catch {
       alert('Error updating item');
     }
   };
 
   /* ===============================
-     DELETE ENQUIRY (NEW)
+     DELETE ENQUIRY
   ================================ */
   const handleDeleteContact = async (id) => {
     if (!window.confirm('Delete this enquiry?')) return;
-
     try {
       await axios.delete(
         `http://localhost:5000/api/contact/${id}`,
         authHeader()
       );
       fetchContacts();
-    } catch (err) {
+    } catch {
       alert('Error deleting enquiry');
     }
   };
@@ -203,7 +226,6 @@ function AdminPage() {
         <h2>Admin Login</h2>
         <form onSubmit={handleLogin} className="admin-login-form">
           <input
-            type="text"
             placeholder="Username"
             value={loginForm.username}
             onChange={(e) =>
@@ -220,9 +242,7 @@ function AdminPage() {
             }
             required
           />
-          <button type="submit" className="btn">
-            Login
-          </button>
+          <button className="btn">Login</button>
         </form>
       </section>
     );
@@ -235,15 +255,40 @@ function AdminPage() {
     <section className="admin">
       <div className="admin-header">
         <h2>Admin Panel</h2>
-        <button onClick={handleLogout} className="btn btn-secondary">
+        <button className="btn btn-secondary" onClick={handleLogout}>
           Logout
         </button>
       </div>
 
+      {/* ANALYTICS */}
+      <h3>Analytics Overview</h3>
+      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        {[
+          { label: 'Products', value: analytics.totalProducts },
+          { label: 'Total Stock', value: analytics.totalStock },
+          { label: 'Low Stock Items', value: analytics.lowStock },
+          { label: 'Enquiries', value: analytics.enquiries },
+        ].map((item) => (
+          <div
+            key={item.label}
+            style={{
+              background: '#fff',
+              padding: '15px',
+              borderRadius: '8px',
+              width: '220px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+            }}
+          >
+            <strong>{item.label}</strong>
+            <h2>{item.value}</h2>
+          </div>
+        ))}
+      </div>
+
+      {/* UPLOAD */}
       <h3>Upload New Timber</h3>
       <form onSubmit={handleUpload} className="admin-upload-form">
         <input
-          type="text"
           placeholder="Name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -258,15 +303,12 @@ function AdminPage() {
           required
         />
         <input
-          type="number"
           placeholder="Stock"
           value={form.stock}
           onChange={(e) => setForm({ ...form, stock: e.target.value })}
           required
         />
         <input
-          type="number"
-          step="0.01"
           placeholder="Price"
           value={form.price}
           onChange={(e) => setForm({ ...form, price: e.target.value })}
@@ -279,11 +321,10 @@ function AdminPage() {
           }
           required
         />
-        <button type="submit" className="btn">
-          Upload
-        </button>
+        <button className="btn">Upload</button>
       </form>
 
+      {/* STOCK LIST */}
       <h3>Current Stock</h3>
       <div className="woods-grid">
         {woods.map((wood) => (
@@ -320,9 +361,6 @@ function AdminPage() {
                 <button className="btn" onClick={() => saveEdit(wood._id)}>
                   Save
                 </button>
-                <button className="btn btn-secondary" onClick={cancelEdit}>
-                  Cancel
-                </button>
               </>
             ) : (
               <>
@@ -345,6 +383,7 @@ function AdminPage() {
         ))}
       </div>
 
+      {/* ENQUIRIES */}
       <h3>Customer Enquiries</h3>
       <div className="contact-list">
         {contacts.map((c) => (
@@ -353,7 +392,6 @@ function AdminPage() {
             <p><strong>Phone:</strong> {c.phone}</p>
             {c.email && <p><strong>Email:</strong> {c.email}</p>}
             <p>{c.message}</p>
-
             <button
               className="btn btn-secondary"
               onClick={() => handleDeleteContact(c._id)}
